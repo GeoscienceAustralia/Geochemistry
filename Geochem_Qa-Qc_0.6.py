@@ -15,17 +15,14 @@ import matplotlib.backends.backend_pdf
 import xlsxwriter
 from openpyxl import load_workbook
 
-FILE_NAME = r"C:\Users\u29043\Desktop\AS_Data_PM_edit.xlsx"
-#File_Name = r"C:\Users\u29043\Documents\Batch_2_DCC.xlsx"
-Save_Location = r"C:\Users\u29043\Desktop\AS_Stats"
-#Id_Coloumn = 'Sample No/ID'
-Id_Coloumn = 'SampleID'
-#detection_limits = r"C:\Users\u29043\Documents\BV_Detection_Limits.xlsx"
+FILE_NAME = r"C:\Users\u29043\Desktop\AS_Stats\Fire Assay\u328926_Final_AS_edits.xlsx"
+Save_Location = r"C:\Users\u29043\Desktop\AS_Stats\Fire Assay"
+Id_Coloumn = 'SampleID' # The name of the column that contains the sample numbers
 DEBUG = 0
-BATCHED = 0
-BATCH = 'AS'
-BATCHES = [1914,2533,3592,6749,8462,8570]
-STANDARD_CUTOFF = 2
+BATCHED = 0 # Does the data contain multpile batches, 0 = No 1 = Yes
+BATCH = 'Batch 1'
+BATCHES = [249,467] # if the data is batched, specify the row numbers for the start of each batch
+STANDARD_CUTOFF = 2 #minimum number of times a sample repeats before been included as a standard
 
 def parse(header):
     '''
@@ -57,7 +54,7 @@ def parse(header):
               "Survey", "ID", "Standard", "Sample", "Colour", "batch",
               "sampleno", "SampleID", "Sampleno", "Jobno", "Pair", "Order",
               "Internal", "External", "METHOD")
-    elements = ('SiO2', 'TiO2','Al2O3', 'Fe2O3', 'MnO', 'MgO', 'CaO', 'Na2O',
+    elements = ('SiO2', 'TiO2','Al2O3', 'Fe2O3', 'FeO','MnO', 'MgO', 'CaO', 'Na2O',
                 'K2O', 'P2O5', 'SO3', "H", "He", "Li", "Be", "B", "C", "N",
                 "O", "F", "Ne", 'Na', 'Mg', 'Al', 'Si','P', 'S', 'Cl', 'Ar',
                 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni',
@@ -305,6 +302,10 @@ def standard_stats(geochem_data, element_List, detection_limits = False):
             element.columns = Stds_List[i]
             std_stats.loc[element_List[j],
                           stats_header[i+(2*i)]] = element.mean()
+            '''
+            need to look into if the mean is used and what impact it is having on the data
+
+            '''
             std_stats.loc[element_List[j],
                           stats_header[(i+(2*i))+1]] = element.std()
             std_stats.loc[element_List[j],
@@ -495,7 +496,7 @@ def standard_stats(geochem_data, element_List, detection_limits = False):
 #     percentile : float
 #         The 90th percentile RSD value.
 
-#     '''
+    # '''
 #     repeat = list(repeat)
 #     repeat_pair = list(repeat_pair)
 #     number_repeats = len(repeat)
@@ -591,10 +592,10 @@ def lab_assessment(geochem_data, element_list, detection_limits):
                     print (repeat[repeat_index], 'repeats')
                     print (repeat_pair[repeat_index], 'repeat pairs')
                     print ('---------------------')
-                summary_stats[stats_header[j]] = duplicate_statistics(
-                    repeat[repeat_index], repeat_pair[repeat_index])
-                minimum, maximum, median, percentile =  duplicate_statistics(
-                    repeat[repeat_index], repeat_pair[repeat_index])
+                #summary_stats[stats_header[j]] = duplicate_statistics(
+                    #repeat[repeat_index], repeat_pair[repeat_index])
+                #minimum, maximum, median, percentile =  duplicate_statistics(
+                    #repeat[repeat_index], repeat_pair[repeat_index])
             else:
                 summary_stats[stats_header[j]] = ['NaN','NaN','NaN','NaN']
         stats_save = ('{}\\Laboratory_Assessment_Stats.xlsx').format(
@@ -661,7 +662,7 @@ def Duplicates(geochem_data, element_list, key_word, SheetName):
             duplicates.loc[(i*2)+1] = geochem_data.loc[repeat_location[0]]
         except:
             pass
-    duplicate_save = ('{}\\{}_Duplicates_2.xlsx').format(Save_Location, BATCH)
+    duplicate_save = ('{}\\{}_Duplicates.xlsx').format(Save_Location, BATCH)
     file_exists = os.path.isfile(duplicate_save)
     if file_exists == False:
         duplicates.to_excel(duplicate_save, index = False,sheet_name = SheetName)
@@ -692,7 +693,8 @@ def Duplicate_Statistics(duplicates):
             pair = duplicates[element_list[j]].iloc[(i*2)+1]
             stats[i,0] = st.mean([repeat, pair])
             stats[i,1] = st.stdev([repeat, pair])
-            duplicate_stats.iloc[(i*5),0] = duplicates.iloc[i*2,1]
+            dup_id = duplicates.columns.get_loc(Id_Coloumn)
+            duplicate_stats.iloc[(i*5),0] = duplicates.iloc[i*2,dup_id]
             duplicate_stats.iloc[(i*5)+1,0] =  "Mean"
             duplicate_stats.iloc[(i*5)+2,0] = "Standard Deviation"
             duplicate_stats.iloc[(i*5)+3,0] = "RSD"
@@ -717,12 +719,13 @@ def main():
     geochem_data[Id_Coloumn] = geochem_data[Id_Coloumn].replace(' Rpt', '',
                                                                regex=True)
     # creates the plots and runs standard statistics
+    #print (geochem_data.loc[(250)])
     geochem_data, detection_limits = LLD(geochem_data,element_list)
     print(detection_limits)
     print (element_list)
     standard_stats(geochem_data,element_list, detection_limits)
-    Duplicates(geochem_data, element_list, "QC", "Lab_Duplicates")
-    Duplicates(geochem_data, element_list, " Rpt", "Analytical")
+    Duplicates(geochem_data, element_list, " DUP", "Lab_Duplicates")
+    Duplicates(geochem_data_unstripped, element_list, " Rpt", "Analytical")
     #creates the plots for duplicate pairs
     #duplicates(geochem_data_unstripped, element_list)
     #lab_assessment(geochem_data_unstripped, element_list, detection_limits)

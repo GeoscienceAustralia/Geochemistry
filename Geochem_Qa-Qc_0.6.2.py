@@ -14,14 +14,29 @@ import matplotlib.backends.backend_pdf
 import xlsxwriter
 from openpyxl import load_workbook
 
+'''
+This section covers the user defined variables for each run. It is required
+to set the file_name, save_location, Id_column, and duplicate/replicate names.
+
+'''
+
 FILE_NAME = r"C:\Users\u29043\Desktop\AS_Stats\Fire Assay\u328926_Final_AS_edits.xlsx"
 Save_Location = r"C:\Users\u29043\Desktop\AS_Stats\Fire Assay"
-Id_Coloumn = 'SampleID' # The name of the column that contains the sample numbers
-DEBUG = 0
-BATCHED = 0 # Does the data contain multpile batches, 0 = No 1 = Yes
+# The name of the column that contains the sample numbers
+Id_Coloumn = 'SampleID'
+# minimum number of times a sample repeats before been included as a standard
+STANDARD_CUTOFF = 2
+# name of the lab duplicates
+DUPLICATE_NAME = ' DUP'
+# name of the analytical duplicates
+REPLICATE_NAME = ' Rpt'
+# Enable Debugging
+DEBUG = False
+# Does the data contain multpile batches, False = No, True = yes
+BATCHED = False
 BATCH = 'Batch 1'
-BATCHES = [249,467] # if the data is batched, specify the row numbers for the start of each batch
-STANDARD_CUTOFF = 2 #minimum number of times a sample repeats before been included as a standard
+# if the data is batched, specify the row numbers for the start of each batch
+BATCHES = [249,467]
 
 def parse(header):
     '''
@@ -53,10 +68,10 @@ def parse(header):
               "Survey", "ID", "Standard", "Sample", "Colour", "batch",
               "sampleno", "SampleID", "Sampleno", "Jobno", "Pair", "Order",
               "Internal", "External", "METHOD")
-    elements = ('SiO2', 'TiO2','Al2O3', 'Fe2O3', 'FeO','MnO', 'MgO', 'CaO', 'Na2O',
-                'K2O', 'P2O5', 'SO3', "H", "He", "Li", "Be", "B", "C", "N",
-                "O", "F", "Ne", 'Na', 'Mg', 'Al', 'Si','P', 'S', 'Cl', 'Ar',
-                'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni',
+    elements = ('SiO2', 'TiO2','Al2O3', 'Fe2O3', 'FeO','MnO', 'MgO', 'CaO',
+                'Na2O','K2O', 'P2O5', 'SO3', "H", "He", "Li", "Be", "B", "C",
+                "N","O", "F", "Ne", 'Na', 'Mg', 'Al', 'Si','P', 'S', 'Cl',
+                'Ar','K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni',
                 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr',
                 'Y', 'Zr','Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd',
                 'In', 'Sn', 'Sb', 'Te','Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr',
@@ -151,7 +166,7 @@ def LLD(geochem_data, element_list, imputation = False):
     ----------
     geochem_data : dataframe
         Dataframe containg the geochemical data.
-    element_List : TYPE
+    element_list : TYPE
         DESCRIPTION.
     imputation : boolean, optional
         DESCRIPTION. The default is False.
@@ -229,7 +244,7 @@ def repeats(geochem_data):
     rep_pair = [x-1 for x in rep_location]
     return rep_location, rep_pair
 
-def standard_stats(geochem_data, element_List, detection_limits = False):
+def standard_stats(geochem_data, element_list, detection_limits = False):
     '''
     This Function is used to calculate the summary statistics for the analysed
     standards. The main statistics calculated are: mean, standard deviaiton,
@@ -241,7 +256,7 @@ def standard_stats(geochem_data, element_List, detection_limits = False):
     ----------
     geochem_data : Pandas dataframe
         Dataframe containg the geochemical data.
-    element_List : list
+    element_list : list
         list containing the elements present within the dataframe.
 
     Returns
@@ -267,13 +282,13 @@ def standard_stats(geochem_data, element_List, detection_limits = False):
     # loop to add in a weighted average for more than one standard
     if len(Stds_List) >1:
         stats_header = np.append(stats_header, 'Weighted_Average')
-        temp_stats = np.zeros([len(element_List),(len(Stds_List)*3)+1])
+        temp_stats = np.zeros([len(element_list),(len(Stds_List)*3)+1])
         average_locations = np.arange(0,len(Stds_List)*3, step = 3)
         rstdev_locations = [x+2 for x in average_locations]
     else:
-        temp_stats = np.zeros([len(element_List),len(Stds_List)*3])
+        temp_stats = np.zeros([len(element_list),len(Stds_List)*3])
     std_stats = pd.DataFrame(data=temp_stats,
-                             index=element_List,
+                             index=element_list,
                              columns= stats_header)
     pdf = matplotlib.backends.backend_pdf.PdfPages(Save_Location +
                                                    "\\Standards.pdf")
@@ -285,13 +300,13 @@ def standard_stats(geochem_data, element_List, detection_limits = False):
     colour = ('tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
               'tab:cyan','tab:gray','tab:pink','tab:olive', 'dodgerblue')
     print (Stds_List)
-    for j in range(0, len(element_List)):
+    for j in range(0, len(element_list)):
         xlimit = 0
         y_upper = 0
         y_lower = 0
         for i in range(0, len(Stds_List)):
             element = geochem_data.loc[geochem_data[Id_Coloumn] ==
-                                       Stds_List[i],element_List[j]]
+                                       Stds_List[i],element_list[j]]
             if min(element) < y_lower:
                 y_lower = min(element)
             if max(element) > y_upper:
@@ -299,15 +314,16 @@ def standard_stats(geochem_data, element_List, detection_limits = False):
             #option to turn on/off
             #element.index = np.arange(start=1, stop=(len(element)+1), step=1)
             element.columns = Stds_List[i]
-            std_stats.loc[element_List[j],
+            std_stats.loc[element_list[j],
                           stats_header[i+(2*i)]] = element.mean()
             '''
-            need to look into if the mean is used and what impact it is having on the data
+            need to look into if the mean is used and what impact it is having
+            on the data
 
             '''
-            std_stats.loc[element_List[j],
+            std_stats.loc[element_list[j],
                           stats_header[(i+(2*i))+1]] = element.std()
-            std_stats.loc[element_List[j],
+            std_stats.loc[element_list[j],
                           stats_header[(i+(2*i))+2]] = (element.std()/
                                                         element.median())*100
             splot = sns.scatterplot(data=element, color = colour[i],
@@ -321,18 +337,18 @@ def standard_stats(geochem_data, element_List, detection_limits = False):
             plt.plot((0,99999),((element.median())*0.9,(element.median())*0.9),
                      linewidth=0.5, linestyle='dashed', color = colour[i])
         savename = ('{}\\Standards\\{}_Standards.png').format(Save_Location,
-                                                              element_List[j])
+                                                              element_list[j])
         lgd = splot.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.xlim(0,xlimit)
         if detection_limits[j] > 0:
             plt.plot((0,99999),(detection_limits[j],detection_limits[j]),
                      linestyle='dashed', linewidth=1, color = 'k')
-        if BATCHED == 1:
+        if BATCHED == True:
             for i in range(len(BATCHES)):
                 plt.plot((BATCHES[i] + 0.5, BATCHES[i] + 0.5), (-99999,99999),
                          color = 'k', linestyle='dashed', linewidth = 0.5)
             plt.ylim(y_lower*1.3, y_upper*1.3)
-        plt.title(element_List[j])
+        plt.title(element_list[j])
         plt.savefig(savename, bbox_extra_artists=(lgd,),
                     bbox_inches='tight', format = 'png',
                     orientation='portrait',dpi = 900)
@@ -341,17 +357,17 @@ def standard_stats(geochem_data, element_List, detection_limits = False):
         plt.clf()
     pdf.close()
     if len(Stds_List) >1:
-        for i in range(0, len(element_List)):
+        for i in range(0, len(element_list)):
             equation_temp = 0
-            sum_stds = std_stats.loc[element_List[i],
+            sum_stds = std_stats.loc[element_list[i],
                                      stats_header[average_locations]].sum()
             for j in range (0,len(average_locations)):
-                avg = std_stats.loc[element_List[i],
+                avg = std_stats.loc[element_list[i],
                                     stats_header[average_locations[j]]]
-                rsd = std_stats.loc[element_List[i],
+                rsd = std_stats.loc[element_list[i],
                                     stats_header[rstdev_locations[j]]]
                 equation_temp = equation_temp + (rsd*avg)
-            std_stats.loc[element_List[i],
+            std_stats.loc[element_list[i],
                           'Weighted_Average'] = equation_temp/sum_stds
     standards_save = ('{}\\Standard_Stats.xlsx').format(Save_Location)
     try:
@@ -437,7 +453,7 @@ def lab_assessment(geochem_data, element_list, detection_limits):
                 repeat_index = [x for x, y in enumerate(means) if
                                 y> group_ranges[j]*dl[0]and
                                 y< group_ranges[j+1]*dl[0]]
-                if DEBUG == 1:
+                if DEBUG == True:
                     print (group_count[j], 'number in group')
                     print (len(repeat_index), 'number found')
                     print (group_ranges[j]*dl[0], group_ranges[j+1]*dl[0])
@@ -516,6 +532,7 @@ def Duplicates(geochem_data, element_list, key_word, SheetName):
             duplicates.loc[(i*2)+1] = geochem_data.loc[repeat_location[0]]
         except:
             pass
+            print ("Duplicates funciton did not run correctly")
     duplicate_save = ('{}\\{}_Duplicates.xlsx').format(Save_Location, BATCH)
     file_exists = os.path.isfile(duplicate_save)
     if file_exists == False:
@@ -578,8 +595,8 @@ def main():
     print(detection_limits)
     print (element_list)
     standard_stats(geochem_data,element_list, detection_limits)
-    Duplicates(geochem_data, element_list, " DUP", "Lab_Duplicates")
-    Duplicates(geochem_data_unstripped, element_list, " Rpt", "Analytical")
+    Duplicates(geochem_data, element_list, DUPLICATE_NAME, "Lab_Duplicates")
+    Duplicates(geochem_data_unstripped, element_list, REPLICATE_NAME, "Analytical")
     #creates the plots for duplicate pairs
     #duplicates(geochem_data_unstripped, element_list)
     #lab_assessment(geochem_data_unstripped, element_list, detection_limits)

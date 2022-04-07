@@ -20,10 +20,10 @@ to set the file_name, save_location, Id_column, and duplicate/replicate names.
 
 '''
 
-FILE_NAME = r"C:\Users\u29043\Desktop\AS_Stats\Fire Assay\u328926_Final_AS_edits.xlsx"
-Save_Location = r"C:\Users\u29043\Desktop\AS_Stats\Fire Assay"
+FILE_NAME = r"X:\Geochemistry Activity\Projects\Source to Sink\Source to Sink Data and Results\Geochem Results\Broken Hill 2021 core\RAW_BV_Geochem_Mar2022-PM.xlsx"
+Save_Location = r"X:\Geochemistry Activity\Projects\Source to Sink\Source to Sink Data and Results\Geochem Results\Broken Hill 2021 core\Phil_Run"
 # The name of the column that contains the sample numbers
-Id_Coloumn = 'SampleID'
+Id_Coloumn = 'Sampleno'
 # minimum number of times a sample repeats before been included as a standard
 STANDARD_CUTOFF = 2
 # name of the lab duplicates
@@ -38,7 +38,7 @@ BATCH = 'Batch 1'
 # if the data is batched, specify the row numbers for the start of each batch
 BATCHES = [249,467]
 
-def parse(header):
+def parse(geochem_data):
     '''
     Parses the header informaiton in order to find geochemical elements and
     oxides. The function will return a cut down version of the header and the
@@ -58,16 +58,15 @@ def parse(header):
         name and the elements changed to standard notation.
 
     '''
-    lengh = len(header)
-    newhead = np.zeros([lengh], dtype = "U16")
-    # list of common headers, add things here if you need them
-    common = ("Lat", 'Long', 'Latitude', 'Longitude', 'Lab','Sample', 'Time',
-              'Date', 'Group','Elev', 'Type', 'Site', 'Comment', 'Depth',
-              'Size', 'LAT', 'LONG', 'Lab No', 'STATE', 'majors', 'Recode',
-              'Name', 'East','North', 'LOI', 'SAMPLE', "GRAIN", "BATCH",
-              "Survey", "ID", "Standard", "Sample", "Colour", "batch",
+    common_headers = ("Lat", 'Long', 'Latitude', 'Longitude', 'Lab','Sample',
+              'Time','Date', 'Group','Elev', 'Type', 'Site', 'Comment',
+              'Depth','Size', 'LAT', 'LONG', 'Lab No', 'STATE', 'majors',
+              'Recode','Name', 'East','North', 'LOI', 'SAMPLE', "GRAIN",
+              "BATCH","Survey", "ID", "Standard", "Sample", "Colour", "batch",
               "sampleno", "SampleID", "Sampleno", "Jobno", "Pair", "Order",
-              "Internal", "External", "METHOD")
+              "Internal", "External", "METHOD", "SampleNo", 'Sample No',
+              'Sample ID', 'External Lab No.', 'Internal Lab No.', 'Batch',
+              'METHOD MILL', 'GA Sample No.')
     elements = ('SiO2', 'TiO2','Al2O3', 'Fe2O3', 'FeO','MnO', 'MgO', 'CaO',
                 'Na2O','K2O', 'P2O5', 'SO3', "H", "He", "Li", "Be", "B", "C",
                 "N","O", "F", "Ne", 'Na', 'Mg', 'Al', 'Si','P', 'S', 'Cl',
@@ -81,80 +80,28 @@ def parse(header):
                 'Pa', 'U', 'Np', 'Pu','Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
                 'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'LOI',
                 'I')
-    for i in range(0, lengh):
-        check = 0
-        for k in range(0, len(common)):
-            if common[k] in header[i]:
-                newhead[i] = 'NaN'
-                check = 1
-            elif k == (len(common)-1) and check == 0:
-                newhead[i] = header[i]
-    nan_count = sum(1 for item in newhead if item==('NaN'))
-    sndhead = np.zeros([len(newhead)-nan_count], dtype = "U16")
-    fullhead = np.zeros(len(header), dtype = 'U64')
-    for i in range(0,len(fullhead)):
-        fullhead[i] = header[i]
-    for i in range(0, len(fullhead)):
-        if common[0] in fullhead[i] or common[2] in fullhead[i]:
-            fullhead[i] = "Latitude"
-        elif common[1] in fullhead[i] or common[3] in fullhead[i]:
-            fullhead[i] = "Longitude"
-    tstore = 'a'
-    for i in range(0, len(newhead)):
-        check = 0
-        if newhead[i] != 'NaN':
-            for k in range(0,len(elements)):
-                if elements[k] in fullhead[i]:
-                    if check == 0:
-                        tstore = elements[k]
-                        check = 1
-                    elif check == 1 and len(tstore) ==1 and elements[k] !='I':
-                        tstore = elements[k]
-            fullhead[i] = tstore
-    nan_count = sum(1 for item in newhead if item==('NaN'))
-    delrows = np.zeros([nan_count])
-    count = 0
-    k = 0
-    for i in range(0, len(newhead)):
-        if newhead[i] =='NaN':
-            delrows[count] = i
-            count = count + 1
-        else:
-            sndhead[k] = newhead[i]
-            k = k + 1
-    newhead = np.zeros([len(sndhead)], dtype = "U16")
-    tstore = "a"
-    for i in range(0, len(sndhead)):
-        check = 0
-        for k in range(0, len(elements)):
-            if elements[k] in sndhead[i]:
-                #print elements[K], sndhead[I]
-                if check == 1:
-                    if len(tstore) == 1 and len(elements[k]) >1:
-                        tstore = elements[k]
-                elif check == 0:
-                    tstore = elements[k]
-                check = 1
-                newhead[i] = tstore
-            if check == 0 and k == 107:
-                print (sndhead[i])
-                newhead[i] = 'NaN'
-                print ("element not found")
-    nan_count = sum(1 for item in newhead if item==('NaN'))
-    if nan_count == 0:
-        sndhead = newhead
-    else:
-        sndhead = np.zeros([len(newhead)-nan_count], dtype = "U16")
-        k = 0
-        for i in range(0, len(newhead)):
-            if newhead[i] =='NaN':
-                pass
-            else:
-                sndhead[k] = newhead[i]
-                k = k + 1
-        #print sndhead
-    fullhead = fullhead.tolist()
-    return sndhead, fullhead
+    header = list(geochem_data)
+    index = []
+    element_list = []
+    for i, value in enumerate(header):
+        if any(x in value for x in elements):
+            if value not in common_headers:
+                index.append(i)
+            elif value in common_headers[2]:
+                header[i] = 'Latitude'
+        elif value in common_headers[3]:
+            header[i] = 'Longitude'
+    for i in index:
+        temp_store = []
+        for count, value in enumerate(elements):
+            if value in header[i]:
+                if len(value) > len(temp_store):
+                    temp_store = value
+        header[i] = temp_store
+        element_list.append(temp_store)
+    geochem_data.columns = header
+    return element_list, geochem_data
+
 
 def LLD(geochem_data, element_list, imputation = False):
     '''
@@ -266,7 +213,7 @@ def standard_stats(geochem_data, element_list, detection_limits = False):
     '''
     stds_count = geochem_data[Id_Coloumn].value_counts()
     print(stds_count)
-    Stds = stds_count[stds_count > STANDARD_CUTOFF]
+    Stds = stds_count[stds_count >= STANDARD_CUTOFF]
     Stds_List = Stds.index.tolist()
     # Gernerate the headers for the Standard statistic
     for i in range (0, len(Stds_List)):
@@ -343,7 +290,7 @@ def standard_stats(geochem_data, element_list, detection_limits = False):
         if detection_limits[j] > 0:
             plt.plot((0,99999),(detection_limits[j],detection_limits[j]),
                      linestyle='dashed', linewidth=1, color = 'k')
-        if BATCHED == True:
+        if BATCHED:
             for i in range(len(BATCHES)):
                 plt.plot((BATCHES[i] + 0.5, BATCHES[i] + 0.5), (-99999,99999),
                          color = 'k', linestyle='dashed', linewidth = 0.5)
@@ -453,7 +400,7 @@ def lab_assessment(geochem_data, element_list, detection_limits):
                 repeat_index = [x for x, y in enumerate(means) if
                                 y> group_ranges[j]*dl[0]and
                                 y< group_ranges[j+1]*dl[0]]
-                if DEBUG == True:
+                if DEBUG:
                     print (group_count[j], 'number in group')
                     print (len(repeat_index), 'number found')
                     print (group_ranges[j]*dl[0], group_ranges[j+1]*dl[0])
@@ -513,7 +460,24 @@ def lab_assessment(geochem_data, element_list, detection_limits):
 
                 #use repeat and repeat pair and duplicate_statistics function
 
-def Duplicates(geochem_data, element_list, key_word, SheetName):
+def Duplicates(geochem_data, key_word, SheetName):
+    '''
+
+
+    Parameters
+    ----------
+    geochem_data : TYPE
+        DESCRIPTION.
+    key_word : TYPE
+        DESCRIPTION.
+    SheetName : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    '''
     repeat = geochem_data[geochem_data[Id_Coloumn].str.contains(key_word,na=False)]
     rep_location = list(repeat.index)
     repeat_list = list(repeat[Id_Coloumn])
@@ -551,8 +515,22 @@ def Duplicates(geochem_data, element_list, key_word, SheetName):
     writer.close()
 
 def Duplicate_Statistics(duplicates):
-    header = list(duplicates)
-    element_list, duplicates.columns = parse(header)
+    '''
+
+
+    Parameters
+    ----------
+    duplicates : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    duplicate_stats : TYPE
+        DESCRIPTION.
+
+    '''
+    #header = list(duplicates)
+    element_list, duplicates = parse(duplicates)
     number_duplicates = int(len(duplicates)/2)
     stats = np.zeros([number_duplicates, 4])
     duplicate_stats = pd.DataFrame(np.zeros([number_duplicates*5,len(element_list)+1]))
@@ -584,19 +562,19 @@ def main():
         print ('Could not find a file with that name')
         sys.exit()
     #
-    header = list(geochem_data)
-    element_list, geochem_data.columns = parse(header)
+    element_list, geochem_data = parse(geochem_data)
     geochem_data_unstripped = geochem_data.copy(deep = True)
     geochem_data[Id_Coloumn] = geochem_data[Id_Coloumn].replace(' Rpt', '',
                                                                regex=True)
     # creates the plots and runs standard statistics
+    print (element_list)
     #print (geochem_data.loc[(250)])
     geochem_data, detection_limits = LLD(geochem_data,element_list)
     print(detection_limits)
     print (element_list)
     standard_stats(geochem_data,element_list, detection_limits)
-    Duplicates(geochem_data, element_list, DUPLICATE_NAME, "Lab_Duplicates")
-    Duplicates(geochem_data_unstripped, element_list, REPLICATE_NAME, "Analytical")
+    Duplicates(geochem_data, DUPLICATE_NAME, "Lab_Duplicates")
+    Duplicates(geochem_data_unstripped, REPLICATE_NAME, "Analytical")
     #creates the plots for duplicate pairs
     #duplicates(geochem_data_unstripped, element_list)
     #lab_assessment(geochem_data_unstripped, element_list, detection_limits)

@@ -20,10 +20,10 @@ to set the file_name, save_location, Id_column, and duplicate/replicate names.
 
 '''
 
-FILE_NAME = r"X:\Geochemistry Activity\Projects\Source to Sink\Source to Sink Data and Results\Geochem Results\Broken Hill 2021 core\RAW_BV_Geochem_Mar2022-PM.xlsx"
-Save_Location = r"X:\Geochemistry Activity\Projects\Source to Sink\Source to Sink Data and Results\Geochem Results\Broken Hill 2021 core\Phil_Run"
+FILE_NAME = r"X:\Geochemistry Activity\Projects\Geochemical Levelling\Lab Analysis\Mammoth Mines\Mammoth_Mines.xlsx"
+Save_Location = r"C:\Users\u29043\Desktop\Test"
 # The name of the column that contains the sample numbers
-Id_Coloumn = 'Sampleno'
+Id_Coloumn = 'SampleNo'
 # minimum number of times a sample repeats before been included as a standard
 STANDARD_CUTOFF = 2
 # name of the lab duplicates
@@ -33,10 +33,10 @@ REPLICATE_NAME = ' Rpt'
 # Enable Debugging
 DEBUG = False
 # Does the data contain multpile batches, False = No, True = yes
-BATCHED = False
+BATCHED = True
 BATCH = 'Batch 1'
 # if the data is batched, specify the row numbers for the start of each batch
-BATCHES = [249,467]
+BATCHES = [328,654,981,1308,1635]
 
 def parse(geochem_data):
     '''
@@ -46,16 +46,17 @@ def parse(geochem_data):
 
     Parameters
     ----------
-    header : array of strings
-        The array containing headers for each of the coloumns.
+    geochem_data : dataframe
+        A pandas dataframe containing geochemistry data with headers to be
+        parsed.
 
     Returns
     -------
-    sndhead : array of strings
-        A cut down header containing only chemical elements.
-    fullhead : array of strings
-        The full header, with Longitude and Latitude changed to a standardised
-        name and the elements changed to standard notation.
+    element_list : array
+        an array containing the elements and oxides within the dataset.
+    geochem_data : dataframe
+        the input dataframe returned with the header informaiton updated to
+        searchable .
 
     '''
     common_headers = ("Lat", 'Long', 'Latitude', 'Longitude', 'Lab','Sample',
@@ -66,7 +67,9 @@ def parse(geochem_data):
               "sampleno", "SampleID", "Sampleno", "Jobno", "Pair", "Order",
               "Internal", "External", "METHOD", "SampleNo", 'Sample No',
               'Sample ID', 'External Lab No.', 'Internal Lab No.', 'Batch',
-              'METHOD MILL', 'GA Sample No.')
+              'METHOD MILL', 'GA Sample No.', 'ENO', 'SITEID', 'LATITUDE',
+              'LONGITUDE', 'BV_ID', 'Pair', 'Batch', 'Order', 'Chem',
+              'Sampleid', 'LabNo')
     elements = ('SiO2', 'TiO2','Al2O3', 'Fe2O3', 'FeO','MnO', 'MgO', 'CaO',
                 'Na2O','K2O', 'P2O5', 'SO3', "H", "He", "Li", "Be", "B", "C",
                 "N","O", "F", "Ne", 'Na', 'Mg', 'Al', 'Si','P', 'S', 'Cl',
@@ -79,7 +82,7 @@ def parse(geochem_data):
                 'Tl','Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
                 'Pa', 'U', 'Np', 'Pu','Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
                 'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'LOI',
-                'I')
+                'I', 'ORGC')
     header = list(geochem_data)
     index = []
     element_list = []
@@ -112,15 +115,18 @@ def LLD(geochem_data, element_list, imputation = False):
     Parameters
     ----------
     geochem_data : dataframe
-        Dataframe containg the geochemical data.
-    element_list : TYPE
-        DESCRIPTION.
+        Dataframe containg the geochemical data..
+    element_list : array
+        An array containing the elements found in the dataframe.
     imputation : boolean, optional
-        DESCRIPTION. The default is False.
+        currently not implemented. The default is False.
 
     Returns
     -------
-    The geochemistry .
+    geochem_data : TYPE
+        DESCRIPTION.
+    detection_limits : TYPE
+        DESCRIPTION.
 
     '''
     detection_limits = np.zeros([len(element_list)])
@@ -201,7 +207,7 @@ def standard_stats(geochem_data, element_list, detection_limits = False):
 
     Parameters
     ----------
-    geochem_data : Pandas dataframe
+    geochem_data : dataframe
         Dataframe containg the geochemical data.
     element_list : list
         list containing the elements present within the dataframe.
@@ -213,7 +219,7 @@ def standard_stats(geochem_data, element_list, detection_limits = False):
     '''
     stds_count = geochem_data[Id_Coloumn].value_counts()
     print(stds_count)
-    Stds = stds_count[stds_count >= STANDARD_CUTOFF]
+    Stds = stds_count[stds_count > STANDARD_CUTOFF]
     Stds_List = Stds.index.tolist()
     # Gernerate the headers for the Standard statistic
     for i in range (0, len(Stds_List)):
@@ -460,7 +466,7 @@ def lab_assessment(geochem_data, element_list, detection_limits):
 
                 #use repeat and repeat pair and duplicate_statistics function
 
-def Duplicates(geochem_data, key_word, SheetName):
+def Duplicates(geochem_data, key_word, SheetName, element_list):
     '''
 
 
@@ -486,18 +492,19 @@ def Duplicates(geochem_data, key_word, SheetName):
     #duplicates.loc[0] = geochem_data.loc[0]
     for i in range(0,len(rep_location)):
         duplicates.loc[i*2] = geochem_data.loc[rep_location[i]]
+       # try:
+        repeat_location = geochem_data[geochem_data[Id_Coloumn].str.contains(repeat_list[i],na=False)]
         try:
-            repeat_location = geochem_data[geochem_data[Id_Coloumn].str.contains(repeat_list[i],na=False)]
-            try:
-                repeat_location = geochem_data[(geochem_data[Id_Coloumn]) == int(repeat_list[i])]
-            except:
-                repeat_location = geochem_data[(geochem_data[Id_Coloumn]) == str(repeat_list[i])]
-            repeat_location = (list(repeat_location.index))
-            duplicates.loc[(i*2)+1] = geochem_data.loc[repeat_location[0]]
+            repeat_location = geochem_data[(geochem_data[Id_Coloumn]) == int(repeat_list[i])]
         except:
-            pass
-            print ("Duplicates funciton did not run correctly")
+            repeat_location = geochem_data[(geochem_data[Id_Coloumn]) == str(repeat_list[i])]
+        repeat_location = (list(repeat_location.index))
+        duplicates.loc[(i*2)+1] = geochem_data.loc[repeat_location[0]]
+        # except:
+        #     pass
+        #     print ("Duplicates funciton did not run correctly")
     duplicate_save = ('{}\\{}_Duplicates.xlsx').format(Save_Location, BATCH)
+    duplicate_plotting(duplicates, element_list, SheetName)
     file_exists = os.path.isfile(duplicate_save)
     if file_exists == False:
         duplicates.to_excel(duplicate_save, index = False,sheet_name = SheetName)
@@ -516,20 +523,20 @@ def Duplicates(geochem_data, key_word, SheetName):
 
 def Duplicate_Statistics(duplicates):
     '''
-
+    Calculates the statistics for duplicate pairs
 
     Parameters
     ----------
     duplicates : TYPE
-        DESCRIPTION.
+        A pandas dataframe containing the duplicate pairs, generated by the
+        Duplicates function.
 
     Returns
     -------
-    duplicate_stats : TYPE
-        DESCRIPTION.
+    duplicate_stats : array
+        Array containing the statistics for each of the duplicate pairs.
 
     '''
-    #header = list(duplicates)
     element_list, duplicates = parse(duplicates)
     number_duplicates = int(len(duplicates)/2)
     stats = np.zeros([number_duplicates, 4])
@@ -555,6 +562,119 @@ def Duplicate_Statistics(duplicates):
             duplicate_stats.iloc[(i*5)+4,j+1] = abs(((repeat-pair)/((repeat+pair)/2))*100) #Relative Percent Difference
     return duplicate_stats
 
+def duplicate_plotting(duplicates, element_list, name):
+    '''
+    Plots each of the duplicate pairs on an X-Y plot
+
+    Parameters
+    ----------
+    duplicates : TYPE
+        DESCRIPTION.
+    element_list : TYPE
+        DESCRIPTION.
+    name : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    '''
+    try:
+        os.mkdir(Save_Location + "\\"+name)
+    except FileExistsError:
+        print ('Directory already exists')
+    lengh = int(len(duplicates)/2)
+    x_index = np.zeros([lengh])
+    y_index = np.zeros([lengh])
+    for i in range(lengh):
+        x_index[i] = int(i*2)
+        y_index[i] = int((i*2)+1)
+    x = duplicates.loc[x_index]
+    print (x)
+    y = duplicates.loc[y_index]
+    for element in element_list:
+        print (element)
+        x_data = x[element].to_numpy()
+        y_data = y[element].to_numpy()
+        n = len(x_data)
+        delete_list = []
+        for i in range(n):
+            if type(x_data[i]) is str or type(y_data[i]) is str:
+                delete_list.append(i)
+        if len(delete_list) > 0:
+            x_data = np.delete(x_data, delete_list)
+            y_data = np.delete(y_data, delete_list)
+        slope, intercept, r2 = linreg(x_data,y_data)
+        fitx = np.linspace(-5,200000,100)
+        fity = slope * fitx + intercept
+        plt.plot(fitx, fity, color = 'lightcoral')
+        plt.plot([0,9999999999],[0,9999999999],color = 'k',
+                  linestyle='dashed')
+        plt.xlim(min(x_data)-(min(x_data)*0.1),
+                  max(x_data)+(max(x_data)*0.1))
+        plt.ylim(min(y_data)-(min(y_data)*0.1),
+                  max(y_data)+(max(y_data)*0.1))
+        plt.scatter(x_data, y_data, s = 1)
+        plt.title(element)
+        plt.xlabel('Duplicate')
+        plt.ylabel('Original')
+        plot_title = ('N = ' + str(len(x_data)) + '\ny = ' +
+                  str(round(slope, 2)) + 'x + ' + str(round(intercept, 2))+
+                  '\nR$\mathregular{^2}$ = ' + str(round(r2,3)))
+        plt.legend(title=plot_title)
+        savename = r"{}\{}-LR.png".format(Save_Location + "\\"+name,element)
+        plt.savefig(savename, format = 'png', dpi = 900)
+        plt.close()
+        plt.clf()
+
+def linreg(x,y):
+    """
+    Calculates the slope, intercept, and r2 of two datasets using ordinary
+    least squares linear regression.
+
+    Parameters
+    ----------
+    x : array
+        The data to be used as for the X-axis.
+    y : array
+        The data to be used as for the Y-axis.
+
+    Returns
+    -------
+    m : float
+        Slope of the linear regresison.
+    c : float
+        Intercept of the linear regresison.
+    r2 : float
+        R2 of the linear regresison.
+
+    """
+    # confirm that the arrays contain valid data
+    n = len(x)
+    i = 0
+    xy = np.zeros([n])
+    x2 = np.zeros([n])
+    for i in range(0,n):
+        xy[i] = x[i]*y[i]
+        x2[i] = x[i]**2
+    m = (n*(sum(xy))-(sum(x)*sum(y)))/(n*(sum(x2))-(sum(x))**2)
+    c = (sum(y)-m*sum(x))/n
+    # R2 of the regression
+    yscore = (1/len(y))*sum(y)
+    sstot = np.zeros([len(y)])
+    f = np.zeros([len(y)])
+    ssres = np.zeros([len(y)])
+    for i in range(0,len(y)):
+        sstot[i] = (y[i] - yscore)**2
+        f[i] = (m*x[i]) + c
+        ssres[i] = (y[i] - f[i])**2
+    sstot = sum(sstot)
+    ssres = sum(ssres)
+    r2 = 1-(ssres/sstot)
+    return m, c, r2
+#
+
 def main():
     try:
         geochem_data  = pd.read_excel(FILE_NAME, header = 0)
@@ -562,19 +682,18 @@ def main():
         print ('Could not find a file with that name')
         sys.exit()
     #
+    #header = list(geochem_data)
     element_list, geochem_data = parse(geochem_data)
+    print (element_list)
+    geochem_data, detection_limits = LLD(geochem_data,element_list)
     geochem_data_unstripped = geochem_data.copy(deep = True)
     geochem_data[Id_Coloumn] = geochem_data[Id_Coloumn].replace(' Rpt', '',
                                                                regex=True)
     # creates the plots and runs standard statistics
-    print (element_list)
-    #print (geochem_data.loc[(250)])
-    geochem_data, detection_limits = LLD(geochem_data,element_list)
     print(detection_limits)
-    print (element_list)
     standard_stats(geochem_data,element_list, detection_limits)
-    Duplicates(geochem_data, DUPLICATE_NAME, "Lab_Duplicates")
-    Duplicates(geochem_data_unstripped, REPLICATE_NAME, "Analytical")
+    Duplicates(geochem_data, DUPLICATE_NAME, "Lab_Duplicates",element_list)
+    Duplicates(geochem_data_unstripped, REPLICATE_NAME, "Analytical",element_list)
     #creates the plots for duplicate pairs
     #duplicates(geochem_data_unstripped, element_list)
     #lab_assessment(geochem_data_unstripped, element_list, detection_limits)

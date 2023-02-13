@@ -19,16 +19,17 @@ File Requirements:
 * The files should be excel .xlsx files with limited extraneous where possible. Whilst the script has an in built parser to find the elements unnecessary column may produce errors due to incorrect assignment. Additonally repeats of the same element name in the header will produce an error and the script will be unable to run correctly. Example files can be found in the examples folder.
 
 Run Parameters:
-* FILE_NAME - the path to the first data set. The path should be surrounded my quotation marks and preceded by an r e.g.  r"C:\Users\ \Desktop\First_Data_Set.xlsx".
-* Save_Location = r"C:\Users\u29043\Desktop\Test"
-* Id_Coloumn = 'SampleNo'
-* STANDARD_CUTOFF = 2
-* DUPLICATE_NAME = ' DUP'
-* REPLICATE_NAME = ' Rpt'
-* DEBUG = False
-* BATCHED = True
-* BATCH = 'Batch 1'
-* BATCHES = [328,654,981,1308,1635]
+* FILE_NAME - the path to the first data set. The path should be surrounded my quotation marks and preceded by an r e.g.  r"C:\Users\Desktop\Data_Set.xlsx".
+* Save_Location – The folder location to save the files.
+* Id_Coloumn – The name of the column where the sampels, standards, and duplictaes are named. The column name should be surrounded by quotes e.g. ‘SampleName’.
+* STANDARD_CUTOFF – how many times a value in the Id_Coloumn needs to be repeated before it is added to the list of standards.
+* DUPLICATE_NAME – The identifier to denote laboratory duplicates, this should include any information including spaces after the sample number, e.g. ' DUP'. If no duplicates of this type exist then it should be set at two quotes with no space.
+* REPLICATE_NAME – The identifier to denote analytical duplicates, this should include any information including spaces after the sample number, e.g. ' Rpt'. If no duplicates of this type exist then it should be set at two quotes with no space.
+* DEBUG – Used for limited code debugging, leave as False unless experienced with python.
+* BATCHED – Boolean option (True or False) as to whether the dataset includes multiple batches of data. If set to True vertical dashed lines denoting each batch (as set by the BATCHES variable) will be added to the element plots.
+* BATCH – The file save name.
+* BATCHES – the row numbers for the start of each batch of samples within the data. The numbers should be separated by commas and enclosed by square brackets e.g. [328,654,981,1308,1635].
+
 
 ## Output data
 

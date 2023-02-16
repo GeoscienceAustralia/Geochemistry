@@ -30,9 +30,8 @@ Run Parameters:
 * BATCH – The file save name.
 * BATCHES – the row numbers for the start of each batch of samples within the data. The numbers should be separated by commas and enclosed by square brackets e.g. [328,654,981,1308,1635].
 
-
 ## Output data
-
-* When running in correction factor mode, the program will output a series of plots (.png), one for each element, and an excel file containing the correction factors. 
-* When running in levelling mode, the script will output a single excel file containing the levelled data.
+* When run the code will produce three new folders, two excel files, and a pdf within the specified save location.
+* The three folders are Standards, Analytical_Duplicates, and Lab_Duplicates:
+  * The standards folder will contain a plot for each element of the difference standards through time. These standard plots will include a solid line for each standard representing the medium value and two dashed lines representing +/- 10% of the median. Some plots may also contain a black dashed line which represents the detection limit for the element. A pdf containing all the plots is also generated in the save location. 
 

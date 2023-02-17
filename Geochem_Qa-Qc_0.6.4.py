@@ -40,7 +40,7 @@ BATCHES = []
 
 def parse(geochem_data):
     '''
-    Parses the header informaiton in order to find geochemical elements and
+    Parses the header information in order to find geochemical elements and
     oxides. The function will return a cut down version of the header and the
     data to just include the geochemical data.
 
@@ -53,9 +53,9 @@ def parse(geochem_data):
     Returns
     -------
     element_list : array
-        an array containing the elements and oxides within the dataset.
+        An array containing the elements and oxides within the dataset.
     geochem_data : dataframe
-        the input dataframe returned with the header informaiton updated to
+        The input dataframe returned with the header information updated to
         searchable .
 
     '''
@@ -115,7 +115,7 @@ def LLD(geochem_data, element_list, imputation = False):
     Parameters
     ----------
     geochem_data : dataframe
-        Dataframe containg the geochemical data..
+        Dataframe containg the geochemical data.
     element_list : array
         An array containing the elements found in the dataframe.
     imputation : boolean, optional
@@ -123,10 +123,12 @@ def LLD(geochem_data, element_list, imputation = False):
 
     Returns
     -------
-    geochem_data : TYPE
-        DESCRIPTION.
-    detection_limits : TYPE
-        DESCRIPTION.
+    geochem_data : Dataframe
+        The input dataframe with values at the limit of detction set to
+        0.5*detection limit.
+    detection_limits : array
+        A numpy array contianing the detected  limit of decection for each
+        element.
 
     '''
     detection_limits = np.zeros([len(element_list)])
@@ -169,20 +171,20 @@ def LLD(geochem_data, element_list, imputation = False):
 
 def repeats(geochem_data):
     '''
-    Function used to find the location of repeats within a dataframe usign a
+    Function used to find the location of repeats within a dataframe using a
     key. The pair is presumed to be the location -1.
 
     Parameters
     ----------
     geochem_data : dataframe
-        The dataframe containg the full geochemical dataset.
+        The dataframe containing the full geochemical dataset.
 
     Returns
     -------
     rep_location : list
         The location of the repeats as identified by the key.
     rep_pair : list
-        The location of the corrisponding pair for each of the indentified
+        The location of the corresponding pair for each of the identified
         repeats.
 
     '''
@@ -200,17 +202,17 @@ def repeats(geochem_data):
 def standard_stats(geochem_data, element_list, detection_limits = False):
     '''
     This Function is used to calculate the summary statistics for the analysed
-    standards. The main statistics calculated are: mean, standard deviaiton,
+    standards. The main statistics calculated are: mean, standard deviation,
     RSD (relative standard deviation). For analyses with more than one
     standard, the weighted average of the rsds is calculated using the
-    mean concentration as as  weighting system.
+    mean concentration as a weighting system.
 
     Parameters
     ----------
     geochem_data : dataframe
-        Dataframe containg the geochemical data.
+        Dataframe containing  the geochemical data.
     element_list : list
-        list containing the elements present within the dataframe.
+        List containing the elements present within the dataframe.
 
     Returns
     -------
@@ -468,15 +470,16 @@ def lab_assessment(geochem_data, element_list, detection_limits):
 
 def Duplicates(geochem_data, key_word, SheetName, element_list):
     '''
-
+   Function use to locate each of the duplicate pairs. Once found statistics
+   are performed on each pair and a linear regression plot produced.
 
     Parameters
     ----------
-    geochem_data : TYPE
+    geochem_data : Dataframe
         DESCRIPTION.
-    key_word : TYPE
+    key_word : String
         DESCRIPTION.
-    SheetName : TYPE
+    SheetName : String
         DESCRIPTION.
 
     Returns
@@ -647,11 +650,11 @@ def linreg(x,y):
     Returns
     -------
     m : float
-        Slope of the linear regresison.
+        Slope of the linear regression.
     c : float
-        Intercept of the linear regresison.
+        Intercept of the linear regression.
     r2 : float
-        R2 of the linear regresison.
+        R2 of the linear regression.
 
     """
     # confirm that the arrays contain valid data

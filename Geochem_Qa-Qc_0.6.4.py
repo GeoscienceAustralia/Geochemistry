@@ -20,23 +20,23 @@ to set the file_name, save_location, Id_column, and duplicate/replicate names.
 
 '''
 
-FILE_NAME = r"X:\Geochemistry Activity\Projects\Geochemical Levelling\Lab Analysis\Mammoth Mines\Mammoth_Mines.xlsx"
-Save_Location = r"C:\Users\u29043\Desktop\Test"
+FILE_NAME = r""
+Save_Location = r""
 # The name of the column that contains the sample numbers
-Id_Coloumn = 'SampleNo'
+Id_Coloumn = ''
 # minimum number of times a sample repeats before been included as a standard
-STANDARD_CUTOFF = 2
+STANDARD_CUTOFF = 3
 # name of the lab duplicates
-DUPLICATE_NAME = ' DUP'
+DUPLICATE_NAME = ''
 # name of the analytical duplicates
-REPLICATE_NAME = ' Rpt'
+REPLICATE_NAME = ''
 # Enable Debugging
 DEBUG = False
 # Does the data contain multpile batches, False = No, True = yes
-BATCHED = True
-BATCH = 'Batch 1'
+BATCHED = False
+BATCH = ''
 # if the data is batched, specify the row numbers for the start of each batch
-BATCHES = [328,654,981,1308,1635]
+BATCHES = []
 
 def parse(geochem_data):
     '''
@@ -69,7 +69,7 @@ def parse(geochem_data):
               'Sample ID', 'External Lab No.', 'Internal Lab No.', 'Batch',
               'METHOD MILL', 'GA Sample No.', 'ENO', 'SITEID', 'LATITUDE',
               'LONGITUDE', 'BV_ID', 'Pair', 'Batch', 'Order', 'Chem',
-              'Sampleid', 'LabNo')
+              'Sampleid', 'LabNo', 'Acq')
     elements = ('SiO2', 'TiO2','Al2O3', 'Fe2O3', 'FeO','MnO', 'MgO', 'CaO',
                 'Na2O','K2O', 'P2O5', 'SO3', "H", "He", "Li", "Be", "B", "C",
                 "N","O", "F", "Ne", 'Na', 'Mg', 'Al', 'Si','P', 'S', 'Cl',
@@ -491,16 +491,20 @@ def Duplicates(geochem_data, key_word, SheetName, element_list):
     duplicates = pd.DataFrame(np.zeros((len(rep_location)*2, len(list(geochem_data)))),columns = list(geochem_data))
     #duplicates.loc[0] = geochem_data.loc[0]
     for i in range(0,len(rep_location)):
-        duplicates.loc[i*2] = geochem_data.loc[rep_location[i]]
-       # try:
-        repeat_location = geochem_data[geochem_data[Id_Coloumn].str.contains(repeat_list[i],na=False)]
         try:
-            repeat_location = geochem_data[(geochem_data[Id_Coloumn]) == int(repeat_list[i])]
-        except:
-            repeat_location = geochem_data[(geochem_data[Id_Coloumn]) == str(repeat_list[i])]
-        repeat_location = (list(repeat_location.index))
-        duplicates.loc[(i*2)+1] = geochem_data.loc[repeat_location[0]]
-        # except:
+            duplicates.loc[i*2] = geochem_data.loc[rep_location[i]]
+           # try:
+            #repeat_location = geochem_data[geochem_data[Id_Coloumn].str.contains(repeat_list[i],na=False)]
+            try:
+                repeat_location = geochem_data[(geochem_data[Id_Coloumn]) == int(repeat_list[i])]
+                if len(repeat_location) <1:
+                    repeat_location = geochem_data[(geochem_data[Id_Coloumn]) == str(repeat_list[i])]
+            except:
+                repeat_location = geochem_data[(geochem_data[Id_Coloumn]) == str(repeat_list[i])]
+            repeat_location = (list(repeat_location.index))
+            duplicates.loc[(i*2)+1] = geochem_data.loc[repeat_location[0]]
+        except IndexError:
+            pass
         #     pass
         #     print ("Duplicates funciton did not run correctly")
     duplicate_save = ('{}\\{}_Duplicates.xlsx').format(Save_Location, BATCH)
@@ -692,8 +696,10 @@ def main():
     # creates the plots and runs standard statistics
     print(detection_limits)
     standard_stats(geochem_data,element_list, detection_limits)
-    Duplicates(geochem_data, DUPLICATE_NAME, "Lab_Duplicates",element_list)
-    Duplicates(geochem_data_unstripped, REPLICATE_NAME, "Analytical",element_list)
+    if len(DUPLICATE_NAME) >0:
+        Duplicates(geochem_data, DUPLICATE_NAME, "Lab_Duplicates",element_list)
+    if len(REPLICATE_NAME) >0:
+        Duplicates(geochem_data_unstripped, REPLICATE_NAME, "Analytical_Duplicates",element_list)
     #creates the plots for duplicate pairs
     #duplicates(geochem_data_unstripped, element_list)
     #lab_assessment(geochem_data_unstripped, element_list, detection_limits)

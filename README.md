@@ -39,4 +39,5 @@ Run Parameters:
   * The Analytical_Duplicates folder contains a linear regression plot of the duplicate pairs for each element. Two sheets are also generated within the duplicates excel sheet containing the duplicates pairs, and the summary statistics.
   * The Lab_Duplicates folder contains a linear regression plot of the duplicate pairs for each element. Two sheets are also generated within the duplicates excel sheet containing the duplicates pairs, and the summary statistics
 
-
+eCat Id: 147731
+DOI: https://dx.doi.org/10.26186/147731

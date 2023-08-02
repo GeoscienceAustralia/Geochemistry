@@ -283,12 +283,7 @@ def standard_stats(geochem_data, element_list, detection_limits = False):
             #element.index = np.arange(start=1, stop=(len(element)+1), step=1)
             element.columns = Stds_List[i]
             std_stats.loc[element_list[j],
-                          stats_header[i+(2*i)]] = element.mean()
-            '''
-            need to look into if the mean is used and what impact it is having
-            on the data
-
-            '''
+                          stats_header[i+(2*i)]] = element.median()
             std_stats.loc[element_list[j],
                           stats_header[(i+(2*i))+1]] = element.std()
             std_stats.loc[element_list[j],

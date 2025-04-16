@@ -33,16 +33,16 @@ to set the file_name, save_location, Id_column, and duplicate/replicate names.
 
 '''
 
-FILE_NAME = r""
-Save_Location = r""
+FILE_NAME = r"C:\Users\u29043\Downloads\Copy of Dataset_AB.xlsx"
+Save_Location = r"C:\Users\u29043\OneDrive - Geoscience Australia\Desktop\QAQC_test"
 # The name of the column that contains the sample numbers
-Id_Coloumn = ''
+Id_Coloumn = 'SAMPLE'
 # minimum number of times a sample repeats before been included as a standard
 STANDARD_CUTOFF = 3
 # name of the lab duplicates
-DUPLICATE_NAME = ''
+DUPLICATE_NAME = ' QA'
 # name of the analytical duplicates
-REPLICATE_NAME = ''
+REPLICATE_NAME = ' CRD'
 # Enable Debugging
 DEBUG = False
 # Does the data contain multpile batches, False = No, True = yes
@@ -95,7 +95,7 @@ def parse(geochem_data):
                 'Tl','Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
                 'Pa', 'U', 'Np', 'Pu','Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
                 'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'LOI',
-                'I', 'ORGC')
+                'I', 'ORGC', 'BaO', 'SrO')
     header = list(geochem_data)
     index = []
     element_list = []
@@ -150,8 +150,8 @@ def LLD(geochem_data, element_list, imputation = False):
         # find the values that have a < and turn that into a value
         if (geochem_data[element_list[i]].apply(str).\
                 str.contains('<', na=False,regex=True).any()) == True:
-            index = geochem_data[element_list[i]].\
-                str.contains('<', na=False,regex=True)
+            index = geochem_data[element_list[i]].str.\
+                contains('<', na=False,regex=True)
             less_than = True
         else:
             index = geochem_data[element_list[i]].apply(str).\
@@ -522,19 +522,23 @@ def Duplicates(geochem_data, key_word, SheetName, element_list):
     duplicate_plotting(duplicates, element_list, SheetName)
     file_exists = os.path.isfile(duplicate_save)
     if file_exists == False:
-        duplicates.to_excel(duplicate_save, index = False,sheet_name = SheetName)
-        book = load_workbook(duplicate_save)
-        writer = pd.ExcelWriter(duplicate_save, engine = 'openpyxl')
-        writer.book = book
+        # duplicates.to_excel(duplicate_save, index = False,sheet_name = SheetName)
+        # book = load_workbook(duplicate_save)
+        # writer = pd.ExcelWriter(duplicate_save, engine = 'openpyxl')
+        # writer.book = book
+        with pd.ExcelWriter(duplicate_save,  engine='openpyxl') as writer:
+            duplicates.to_excel(writer, sheet_name=SheetName, index=False, startrow=0)
     else:
-        book = load_workbook(duplicate_save)
-        writer = pd.ExcelWriter(duplicate_save, engine = 'openpyxl')
-        writer.book = book
-        duplicates.to_excel(writer, index = False,sheet_name = SheetName)
+        # book = load_workbook(duplicate_save)
+        # writer = pd.ExcelWriter(duplicate_save, engine = 'openpyxl')
+        # writer.book = book
+        # duplicates.to_excel(writer, index = False,sheet_name = SheetName)
+        with pd.ExcelWriter(duplicate_save, mode='a', if_sheet_exists='replace', engine='openpyxl') as writer:
+            duplicates.to_excel(writer, sheet_name=SheetName, index=False, startrow=0)
     stats = Duplicate_Statistics(duplicates)
     stats.to_excel(writer, index = False,sheet_name = SheetName+"_Statistics")
-    writer.save()
-    writer.close()
+    #writer.save()
+    #writer.close()
 
 def Duplicate_Statistics(duplicates):
     '''
@@ -562,19 +566,20 @@ def Duplicate_Statistics(duplicates):
         for i in range(number_duplicates):
             repeat = duplicates[element_list[j]].iloc[i*2]
             pair = duplicates[element_list[j]].iloc[(i*2)+1]
-            stats[i,0] = st.mean([repeat, pair])
-            stats[i,1] = st.stdev([repeat, pair])
-            dup_id = duplicates.columns.get_loc(Id_Coloumn)
-            duplicate_stats.iloc[(i*5),0] = duplicates.iloc[i*2,dup_id]
-            duplicate_stats.iloc[(i*5)+1,0] =  "Mean"
-            duplicate_stats.iloc[(i*5)+2,0] = "Standard Deviation"
-            duplicate_stats.iloc[(i*5)+3,0] = "RSD"
-            duplicate_stats.iloc[(i*5)+4,0] = "RPD"
-            duplicate_stats.iloc[(i*5),j+1] = ""
-            duplicate_stats.iloc[(i*5)+1,j+1] =  st.mean([repeat, pair])
-            duplicate_stats.iloc[(i*5)+2,j+1] = st.stdev([repeat, pair])
-            duplicate_stats.iloc[(i*5)+3,j+1] = stats[i,1]/stats[i,0]
-            duplicate_stats.iloc[(i*5)+4,j+1] = abs(((repeat-pair)/((repeat+pair)/2))*100) #Relative Percent Difference
+            if np.isnan(repeat) == False and np.isnan(pair) == False:
+                stats[i,0] = st.mean([repeat, pair])
+                stats[i,1] = st.stdev([repeat, pair])
+                dup_id = duplicates.columns.get_loc(Id_Coloumn)
+                duplicate_stats.iloc[(i*5),0] = duplicates.iloc[i*2,dup_id]
+                duplicate_stats.iloc[(i*5)+1,0] =  "Mean"
+                duplicate_stats.iloc[(i*5)+2,0] = "Standard Deviation"
+                duplicate_stats.iloc[(i*5)+3,0] = "RSD"
+                duplicate_stats.iloc[(i*5)+4,0] = "RPD"
+                duplicate_stats.iloc[(i*5),j+1] = ""
+                duplicate_stats.iloc[(i*5)+1,j+1] =  st.mean([repeat, pair])
+                duplicate_stats.iloc[(i*5)+2,j+1] = st.stdev([repeat, pair])
+                duplicate_stats.iloc[(i*5)+3,j+1] = stats[i,1]/stats[i,0]
+                duplicate_stats.iloc[(i*5)+4,j+1] = abs(((repeat-pair)/((repeat+pair)/2))*100) #Relative Percent Difference
     return duplicate_stats
 
 def duplicate_plotting(duplicates, element_list, name):
@@ -606,42 +611,46 @@ def duplicate_plotting(duplicates, element_list, name):
         x_index[i] = int(i*2)
         y_index[i] = int((i*2)+1)
     x = duplicates.loc[x_index]
-    print (x)
+    #print (x)
     y = duplicates.loc[y_index]
     for element in element_list:
-        print (element)
+        #print (element)
         x_data = x[element].to_numpy()
         y_data = y[element].to_numpy()
-        n = len(x_data)
-        delete_list = []
-        for i in range(n):
-            if type(x_data[i]) is str or type(y_data[i]) is str:
-                delete_list.append(i)
-        if len(delete_list) > 0:
-            x_data = np.delete(x_data, delete_list)
-            y_data = np.delete(y_data, delete_list)
-        slope, intercept, r2 = linreg(x_data,y_data)
-        fitx = np.linspace(-5,200000,100)
-        fity = slope * fitx + intercept
-        plt.plot(fitx, fity, color = 'lightcoral')
-        plt.plot([0,9999999999],[0,9999999999],color = 'k',
-                  linestyle='dashed')
-        plt.xlim(min(x_data)-(min(x_data)*0.1),
-                  max(x_data)+(max(x_data)*0.1))
-        plt.ylim(min(y_data)-(min(y_data)*0.1),
-                  max(y_data)+(max(y_data)*0.1))
-        plt.scatter(x_data, y_data, s = 1)
-        plt.title(element)
-        plt.xlabel('Duplicate')
-        plt.ylabel('Original')
-        plot_title = ('N = ' + str(len(x_data)) + '\ny = ' +
-                  str(round(slope, 2)) + 'x + ' + str(round(intercept, 2))+
-                  '\nR$\mathregular{^2}$ = ' + str(round(r2,3)))
-        plt.legend(title=plot_title)
-        savename = r"{}\{}-LR.png".format(Save_Location + "\\"+name,element)
-        plt.savefig(savename, format = 'png', dpi = 900)
-        plt.close()
-        plt.clf()
+        x_data_nan_check = np.isnan(x_data).all()
+        y_data_nan_check = np.isnan(y_data).all()
+        if x_data_nan_check == False and y_data_nan_check == False:
+            n = len(x_data)
+            delete_list = []
+            for i in range(n):
+                if type(x_data[i]) is str or type(y_data[i]) is str:
+                    delete_list.append(i)
+            if len(delete_list) > 0:
+                x_data = np.delete(x_data, delete_list)
+                y_data = np.delete(y_data, delete_list)
+            slope, intercept, r2 = linreg(x_data,y_data)
+            fitx = np.linspace(-5,200000,100)
+            fity = slope * fitx + intercept
+            plt.plot(fitx, fity, color = 'lightcoral')
+            plt.plot([0,9999999999],[0,9999999999],color = 'k',
+                      linestyle='dashed')
+            print (x_data)
+            plt.xlim(min(x_data)-(min(x_data)*0.1),
+                      max(x_data)+(max(x_data)*0.1))
+            plt.ylim(min(y_data)-(min(y_data)*0.1),
+                      max(y_data)+(max(y_data)*0.1))
+            plt.scatter(x_data, y_data, s = 1)
+            plt.title(element)
+            plt.xlabel('Duplicate')
+            plt.ylabel('Original')
+            plot_title = ('N = ' + str(len(x_data)) + '\ny = ' +
+                      str(round(slope, 2)) + 'x + ' + str(round(intercept, 2))+
+                      '\nR$\mathregular{^2}$ = ' + str(round(r2,3)))
+            plt.legend(title=plot_title)
+            savename = r"{}\{}-LR.png".format(Save_Location + "\\"+name,element)
+            plt.savefig(savename, format = 'png', dpi = 900)
+            plt.close()
+            plt.clf()
 
 def linreg(x,y):
     """

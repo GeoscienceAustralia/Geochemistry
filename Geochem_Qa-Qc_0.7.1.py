@@ -33,23 +33,23 @@ to set the file_name, save_location, Id_column, and duplicate/replicate names.
 
 '''
 
-FILE_NAME = r"C:\Users\u29043\Downloads\Copy of Dataset_AB.xlsx"
-Save_Location = r"C:\Users\u29043\OneDrive - Geoscience Australia\Desktop\QAQC_test"
+FILE_NAME = r"C:\Users\u29043\OneDrive - Geoscience Australia\Desktop\Geochem_QaQc_dev\Testing.xlsx"
+Save_Location = r"C:\Users\u29043\OneDrive - Geoscience Australia\Desktop\Geochem_QaQc_dev"
 # The name of the column that contains the sample numbers
-Id_Coloumn = 'SAMPLE'
+Id_Coloumn = 'sampleno'
 # minimum number of times a sample repeats before been included as a standard
-STANDARD_CUTOFF = 3
+STANDARD_CUTOFF = 1
 # name of the lab duplicates
-DUPLICATE_NAME = ' QA'
+DUPLICATE_NAME = ' Dup'
 # name of the analytical duplicates
-REPLICATE_NAME = ' CRD'
+REPLICATE_NAME = ' Rpt'
 # Enable Debugging
 DEBUG = False
 # Does the data contain multpile batches, False = No, True = yes
 BATCHED = False
 BATCH = ''
 # if the data is batched, specify the row numbers for the start of each batch
-BATCHES = []
+BATCHES = [128]
 
 def parse(geochem_data):
     '''
@@ -82,7 +82,7 @@ def parse(geochem_data):
               'Sample ID', 'External Lab No.', 'Internal Lab No.', 'Batch',
               'METHOD MILL', 'GA Sample No.', 'ENO', 'SITEID', 'LATITUDE',
               'LONGITUDE', 'BV_ID', 'Pair', 'Batch', 'Order', 'Chem',
-              'Sampleid', 'LabNo', 'Acq')
+              'Sampleid', 'LabNo', 'Acq', 'ExternalNo')
     elements = ('SiO2', 'TiO2','Al2O3', 'Fe2O3', 'FeO','MnO', 'MgO', 'CaO',
                 'Na2O','K2O', 'P2O5', 'SO3', "H", "He", "Li", "Be", "B", "C",
                 "N","O", "F", "Ne", 'Na', 'Mg', 'Al', 'Si','P', 'S', 'Cl',
@@ -95,7 +95,7 @@ def parse(geochem_data):
                 'Tl','Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
                 'Pa', 'U', 'Np', 'Pu','Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
                 'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'LOI',
-                'I', 'ORGC', 'BaO', 'SrO')
+                'I', 'ORGC', 'BaO', 'SrO', 'V2O5', 'Cr2O3')
     header = list(geochem_data)
     index = []
     element_list = []
@@ -116,9 +116,21 @@ def parse(geochem_data):
         header[i] = temp_store
         element_list.append(temp_store)
     geochem_data.columns = header
+    #check for duplicate elements
+    element_count = np.unique(element_list, return_counts = True)
+    if any(x > 1 for x in element_count[1]) == True:
+        element_count_converteed = np.array([element_count[0],element_count[1]])
+        duplicate_elements_index = [x for x, y in enumerate(element_count[1]) if y > 1]
+        duplicate_elements = element_count_converteed[0, duplicate_elements_index]
+        error_string = ('The parser has identified duplictate element(s) {} in'
+                 ' the selected file. The script is not intended to function '
+                 'with duplicate elements. Please check the above print out of'
+                 ' discovered elements to confirm the parser ran correctly.'
+                 ).format(duplicate_elements)
+        sys.exit(error_string)
     return element_list, geochem_data
 
-
+    
 def LLD(geochem_data, element_list, imputation = False):
     '''
     This function is designed to find values that are below the detection
@@ -144,6 +156,7 @@ def LLD(geochem_data, element_list, imputation = False):
         element.
 
     '''
+    geochem_data[element_list] = geochem_data[element_list].replace({' ':''}, regex=True)
     detection_limits = np.zeros([len(element_list)])
     for i in range (len(element_list)):
         less_than = False
@@ -177,7 +190,7 @@ def LLD(geochem_data, element_list, imputation = False):
             # replace the less than values with half detection limits
             geochem_data[element_list[i]] = \
                 geochem_data[element_list[i]].replace(detection_index,
-                                                      half_detection)
+                                                      half_detection)   
     if imputation == True:
         print('Still to be implemented')
     return geochem_data, detection_limits
@@ -239,7 +252,7 @@ def standard_stats(geochem_data, element_list, detection_limits = False):
     # Gernerate the headers for the Standard statistic
     for i in range (0, len(Stds_List)):
         if i == 0:
-            stats_header = Stds_List[i] + '_Average'
+            stats_header = str(Stds_List[i]) + '_Average'
         else:
             stats_header = np.append(stats_header,str(Stds_List[i]) +
                                      '_Average')
@@ -275,6 +288,10 @@ def standard_stats(geochem_data, element_list, detection_limits = False):
         for i in range(0, len(Stds_List)):
             element = geochem_data.loc[geochem_data[Id_Coloumn] ==
                                        Stds_List[i],element_list[j]]
+            print ('standard =',Stds_List[i])
+            print ('Element =' ,element)
+            print ('Min =' ,min(element))
+            print ('lower =' ,y_lower)
             if min(element) < y_lower:
                 y_lower = min(element)
             if max(element) > y_upper:
@@ -308,7 +325,7 @@ def standard_stats(geochem_data, element_list, detection_limits = False):
                      linestyle='dashed', linewidth=1, color = 'k')
         if BATCHED:
             for i in range(len(BATCHES)):
-                plt.plot((BATCHES[i] + 0.5, BATCHES[i] + 0.5), (-99999,99999),
+                plt.plot((BATCHES[i] + 0.5, BATCHES[i] + 0.5), (-99999,99999999),
                          color = 'k', linestyle='dashed', linewidth = 0.5)
             plt.ylim(y_lower*1.3, y_upper*1.3)
         plt.title(element_list[j])
